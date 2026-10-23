@@ -1765,8 +1765,8 @@ function codeDialog(who){ const isPar = who==='parent'; const kid = isPar ? null
       close(); }
     catch(err){ sb.disabled=false; m.textContent = /bad pin|bad code/.test(err.message) ? 'הקוד הנוכחי לא נכון.' : /locked/.test(err.message) ? 'יותר מדי ניסיונות. נסו שוב בעוד 10 דקות.' : 'השמירה לא הצליחה. בדקו את החיבור לאינטרנט.'; } }; }
 $('#myCode').onclick=()=>codeDialog('kid');
-function welcome(){ if(document.querySelector('.wel')) return; const k=KID; if(!k) return; const f=k.g==='f';
-  S.welcomed=true; save(); track('welcome',{});
+function welcome(demo){ if(document.querySelector('.wel')) return; const k=demo||KID; if(!k) return; const f=k.g==='f';
+  if(!demo){ S.welcomed=true; save(); track('welcome',{}); }
   const reduce = (()=>{ try{ return matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } })();
   const cards=[['⚡','20 ניסויים, 3 שלבים','מתחילים מנורה אחת ובונים עד אורגן חשמלי ומנוע. כל ניסוי שמסיימים טוען את הסוללה שלך.'],
     ['🙂','ניצוץ, המדריך שלך','אלקטרון קטן שמסביר הכל. אפשר לשאול אותו כל שאלה, והוא עונה.'],
@@ -1799,12 +1799,13 @@ function welcome(){ if(document.querySelector('.wel')) return; const k=KID; if(!
     try{ const ac=new (window.AudioContext||window.webkitAudioContext)(); const g=ac.createGain(); g.gain.value=.08; g.connect(ac.destination);
       [0,4,7,12,16].forEach((n,i)=>{ const o=ac.createOscillator(), e=ac.createGain(), t=ac.currentTime+.05+i*.11; o.type='triangle'; o.frequency.value=392*Math.pow(2,n/12); e.gain.setValueAtTime(.0001,t); e.gain.exponentialRampToValueAtTime(1,t+.02); e.gain.exponentialRampToValueAtTime(.001,t+.5); o.connect(e); e.connect(g); o.start(t); o.stop(t+.55); });
       setTimeout(()=>{ try{ ac.close(); }catch(e){} },1500); }catch(e){} }
-  const close=()=>{ stopSay(); cancelAnimationFrame(raf); ov.remove(); document.body.style.overflow=''; document.removeEventListener('keydown',key); track('welcome_done',{}); };
+  const close=()=>{ stopSay(); cancelAnimationFrame(raf); ov.remove(); document.body.style.overflow=''; document.removeEventListener('keydown',key); if(demo){ if(!ROLE) showGate(); } else track('welcome_done',{}); };
   const key=e=>{ if(e.key==='Escape') close(); }; document.addEventListener('keydown',key);
   ov.querySelector('#welGo').onclick=close;
   ov.querySelector('#welSay').onclick=ev=>say([[ov.querySelector('h2').textContent.replace('🎉',''),ov.querySelector('h2')],['הנה מה שמחכה לך כאן.',null],...[...ov.querySelectorAll('.welcard')].map(c=>[c.querySelector('b').textContent+'. '+c.querySelector('small').textContent,c])],ev.currentTarget);
   setTimeout(()=>{ const b=ov.querySelector('#welGo'); if(b) b.focus({preventScroll:true}); },reduce?50:2500);
 }
+if(/[?&]preview=welcome\b/.test(location.search)) setTimeout(()=>{ hideGate(); const m=location.search.match(/[?&]name=([^&]+)/), g=/[?&]g=f\b/.test(location.search)?'f':'m'; welcome({name:m?decodeURIComponent(m[1]).slice(0,30):'יהונתן',g}); },400);
 function showGate(){ const g=$('#gate'); g.hidden=false; $('#gChoices').hidden=false; $('#gNew').hidden=false; $('#nkForm').hidden=true; $('#pinForm').hidden=true; $('#gateT').hidden=false; $('#pinMsg').textContent=''; document.body.style.overflow='hidden'; setTimeout(()=>{ const b=g.querySelector('.gch'); if(b) b.focus(); },30); }
 function hideGate(){ $('#gate').hidden=true; document.body.style.overflow=''; }
 $('#gateMas').innerHTML=`<svg viewBox="-60 -92 120 146" width="110" height="110">${mas(0,0,'happy',2)}</svg>`;
