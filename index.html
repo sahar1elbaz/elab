@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0b1f1a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
-<title>מעבדת האלקטרוניקה של יהונתן</title>
+<title>מעבדת האלקטרוניקה</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&family=Assistant:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
@@ -1479,7 +1479,7 @@ async function album(){
 }
 
 /* ---------- usage tracking (kept in the artifact's database; parents see it in "תובנות להורים") ---------- */
-const TM={sess:Date.now().toString(36)+Math.random().toString(36).slice(2,7), t0:Date.now(), startISO:new Date().toISOString(), events:[], active:0, lastAct:Date.now(), dirty:false, busy:false, ref:null, db:null, who:S.who||'יהונתן',
+const TM={sess:Date.now().toString(36)+Math.random().toString(36).slice(2,7), t0:Date.now(), startISO:new Date().toISOString(), events:[], active:0, lastAct:Date.now(), dirty:false, busy:false, ref:null, db:null, who:S.who||'אורח',
   dev:(()=>{ try{ return matchMedia('(pointer:coarse)').matches ? (innerWidth<700?'טלפון':'טאבלט') : 'מחשב'; }catch(e){ return 'מחשב'; } })(), expN:0, expT:0, m:null, mT:0, mN:0, simLast:{}};
 function track(t,d){ if(TM.off) return; const ev=Object.assign({t, at:Date.now()-TM.t0}, d||{}); TM.events.push(ev); if(TM.events.length>900) TM.events.splice(0,TM.events.length-900); TM.dirty=true; }
 function tmExp(n){ const now=Date.now(); if(TM.expN && TM.expN!==n) track('exp_time',{n:TM.expN,sec:Math.min(3600,Math.round((now-TM.expT)/1000))}); if(TM.expN!==n){ TM.expN=n; TM.expT=now; track('exp_open',{n}); } }
