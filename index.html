@@ -468,6 +468,19 @@ a{color:var(--accent)}
 @keyframes welUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes welWave{0%,100%{transform:rotate(0)}25%{transform:rotate(-10deg)}75%{transform:rotate(10deg)}}
 @media (prefers-reduced-motion:reduce){.wel,.welword span,.wel h2,.wel .welsub,.welcard,.welbtns,.welmas{animation:none!important;opacity:1!important}}
+
+.gate{overflow-y:auto}
+.gnew{background:none;border:2px dashed var(--line);color:var(--ink);border-radius:999px;padding:10px 20px;font:inherit;font-weight:800;cursor:pointer}
+.gnew:hover{border-color:var(--accent);color:var(--accent)}
+.nkf{display:flex;flex-direction:column;gap:12px;width:100%;text-align:right}
+.nkf h3{margin:0;text-align:center;font-size:1.3rem}
+.nkf .row{display:flex;gap:10px;flex-wrap:wrap}
+.nkf .row>*{flex:1 1 120px}
+.nkf input,.nkf select{border:2px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--sunk);color:var(--ink);font:inherit;min-width:0}
+.nkf input:focus,.nkf select:focus{border-color:var(--accent);outline:none}
+.nkf .ltr{direction:ltr;text-align:center;letter-spacing:.3em;font-family:var(--f-mono)}
+.nkf small{color:var(--muted);font-weight:600}
+.nkf .controls{justify-content:center}
 </style>
 </head>
 <body>
@@ -530,6 +543,16 @@ a{color:var(--accent)}
       <button type="button" class="gch" data-u="kid"><span class="gi" id="kidIcon" aria-hidden="true"></span><b>יהונתן</b><small>לניסויים</small></button>
       <button type="button" class="gch par" data-u="parent"><span class="gi" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><b>הורה</b></button>
     </div>
+    <button type="button" class="gnew" id="gNew">+ משתמש חדש</button>
+    <form class="nkf" id="nkForm" hidden>
+      <h3>משתמש חדש במעבדה</h3>
+      <label class="fld">שם<input id="nkName" maxlength="30" required autocomplete="off"></label>
+      <div class="row"><label class="fld">בן או בת<select id="nkG"><option value="m">בן</option><option value="f">בת</option></select></label><label class="fld">גיל<input id="nkAge" type="number" min="4" max="17" inputmode="numeric"></label></div>
+      <label class="fld">קוד אישי (רשות)<input id="nkCode" class="ltr" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password"><small>4 עד 8 ספרות. עם קוד, רק את/ה נכנסים להתקדמות שלך. אפשר גם להוסיף אחר כך.</small></label>
+      <label class="fld">קוד הורה<input id="nkPin" class="ltr" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" required><small>הורה צריך לאשר הצטרפות של משתמש חדש.</small></label>
+      <div class="pinmsg" id="nkMsg" aria-live="polite"></div>
+      <div class="controls"><button type="button" class="btn" id="nkBack">חזרה</button><button class="btn primary" type="submit">הצטרפות למעבדה</button></div>
+    </form>
     <form class="pin" id="pinForm" hidden>
       <label for="pinIn" id="pinLbl">קוד הורה</label>
       <input id="pinIn" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" aria-describedby="pinMsg">
@@ -1705,7 +1728,7 @@ function renderGateKids(){ const box=$('#gChoices'); if(!box) return;
   box.querySelectorAll('[data-u]').forEach(b=> b.onclick=()=>{ const k = b.dataset.u==='kid' ? KIDS.find(x=>x.id===b.dataset.k) : null;
     if(k && !k.has_code){ setRole('kid',k.id); hideGate(); return; }
     GATE_FOR = k ? k.id : 'parent'; $('#pinLbl').textContent = k ? `הקוד של ${k.name}` : 'קוד הורה'; $('#pinMsg').textContent='';
-    box.hidden=true; $('#pinForm').hidden=false; const i=$('#pinIn'); i.value=''; i.focus(); }); }
+    box.hidden=true; $('#gNew').hidden=true; $('#pinForm').hidden=false; const i=$('#pinIn'); i.value=''; i.focus(); }); }
 let GATE_FOR='parent';
 function kidsCardHTML(){ return `<section class="card"><div class="inshead"><h3>הילדים במעבדה</h3></div>
   <ul class="kidl">${KIDS.map(k=>`<li><span class="kn"><b>${esc(k.name)}</b><small>${[k.g==='f'?'בת':k.g==='m'?'בן':'',k.age?`גיל ${esc(k.age)}`:''].filter(Boolean).join(' · ')}${KPROG[k.id]?` · ${KPROG[k.id].done}/20 ניסויים`:''} · ${k.has_code?'יש קוד אישי':'בלי קוד'}</small></span><span class="controls" style="margin:0">${k.has_code?`<button type="button" class="say" data-rcode="${esc(k.id)}">איפוס קוד</button>`:''}<button type="button" class="say" data-delkid="${esc(k.id)}">מחיקה</button></span></li>`).join('')||'<li class="muted">אין עדיין ילדים.</li>'}</ul>
@@ -1782,11 +1805,24 @@ function welcome(){ if(document.querySelector('.wel')) return; const k=KID; if(!
   ov.querySelector('#welSay').onclick=ev=>say([[ov.querySelector('h2').textContent.replace('🎉',''),ov.querySelector('h2')],['הנה מה שמחכה לך כאן.',null],...[...ov.querySelectorAll('.welcard')].map(c=>[c.querySelector('b').textContent+'. '+c.querySelector('small').textContent,c])],ev.currentTarget);
   setTimeout(()=>{ const b=ov.querySelector('#welGo'); if(b) b.focus({preventScroll:true}); },reduce?50:2500);
 }
-function showGate(){ const g=$('#gate'); g.hidden=false; $('#gChoices').hidden=false; $('#pinForm').hidden=true; $('#pinMsg').textContent=''; document.body.style.overflow='hidden'; setTimeout(()=>{ const b=g.querySelector('.gch'); if(b) b.focus(); },30); }
+function showGate(){ const g=$('#gate'); g.hidden=false; $('#gChoices').hidden=false; $('#gNew').hidden=false; $('#nkForm').hidden=true; $('#pinForm').hidden=true; $('#gateT').hidden=false; $('#pinMsg').textContent=''; document.body.style.overflow='hidden'; setTimeout(()=>{ const b=g.querySelector('.gch'); if(b) b.focus(); },30); }
 function hideGate(){ $('#gate').hidden=true; document.body.style.overflow=''; }
 $('#gateMas').innerHTML=`<svg viewBox="-60 -92 120 146" width="110" height="110">${mas(0,0,'happy',2)}</svg>`;
 renderGateKids();
-$('#pinBack').onclick=()=>{ $('#pinForm').hidden=true; $('#gChoices').hidden=false; };
+$('#pinBack').onclick=()=>{ $('#pinForm').hidden=true; $('#gChoices').hidden=false; $('#gNew').hidden=false; };
+$('#gNew').onclick=()=>{ $('#gChoices').hidden=true; $('#gNew').hidden=true; const f=$('#nkForm'); f.reset(); $('#nkMsg').textContent=''; f.hidden=false; $('#gateT').hidden=true; $('#nkName').focus(); track('gate_new',{}); };
+$('#nkBack').onclick=()=>{ $('#nkForm').hidden=true; $('#gateT').hidden=false; $('#gChoices').hidden=false; $('#gNew').hidden=false; };
+$('#nkForm').onsubmit=async ev=>{ ev.preventDefault(); const m=$('#nkMsg'); const name=$('#nkName').value.trim().slice(0,30), g=$('#nkG').value, age=$('#nkAge').value||'', code=$('#nkCode').value.trim(), pin=$('#nkPin').value.trim();
+  if(!name){ m.textContent='צריך לכתוב שם.'; return; }
+  if(KIDS.some(k=>k.name===name)){ m.textContent='כבר יש במעבדה משתמש בשם הזה.'; return; }
+  if(code && !/^[0-9]{4,8}$/.test(code)){ m.textContent='הקוד האישי צריך להיות 4 עד 8 ספרות.'; return; }
+  const sb=ev.target.querySelector('[type=submit]'); sb.disabled=true; m.textContent='';
+  const k={id:'k'+Date.now().toString(36),name,g,age,created:new Date().toISOString(),has_code:!!code};
+  try{ await rpc('kid_add',{p_pin:pin,p_id:k.id,p_name:k.name,p_g:k.g,p_age:String(age)}); }
+  catch(err){ sb.disabled=false; m.textContent = /bad pin/.test(err.message) ? 'קוד ההורה לא נכון.' : /locked/.test(err.message) ? 'יותר מדי ניסיונות. נסו שוב בעוד 10 דקות.' : 'ההרשמה לא הצליחה. בדקו את החיבור לאינטרנט.'; return; }
+  if(code){ try{ await rpc('kid_set_code',{p_id:k.id,p_old:'',p_new:code}); }catch(err){ k.has_code=false; } }
+  sb.disabled=false; KIDS.push(k); saveKidsLocal(); KPROG[k.id]={done:0,u:0}; renderGateKids(); track('kid_add',{src:'gate'});
+  $('#nkForm').hidden=true; $('#gateT').hidden=false; setRole('kid',k.id,k.has_code?code:''); hideGate(); };
 $('#pinForm').onsubmit=async ev=>{ ev.preventDefault(); const m=$('#pinMsg'), i=$('#pinIn');
   if(Date.now()<pinLockUntil){ m.textContent=`יותר מדי ניסיונות. נסו שוב בעוד ${Math.ceil((pinLockUntil-Date.now())/1000)} שניות.`; return; }
   const v=i.value.trim(); if(!v) return; const sb=ev.target.querySelector('[type=submit]'); sb.disabled=true;
