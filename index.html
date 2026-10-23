@@ -332,7 +332,7 @@ ol.steps li > .say{margin-inline-start:44px;align-self:flex-start}
 
 [hidden]{display:none!important}
 /* who is learning: kid or parent */
-.whob{display:inline-flex;align-items:center;gap:8px;font-size:.85rem;font-weight:700;color:#c9d1f5}
+.whob{display:inline-flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:.85rem;font-weight:700;color:#c9d1f5}
 .whob button{background:rgb(255 255 255 / .1);color:#fff;border:1px solid rgb(255 255 255 / .25);border-radius:999px;padding:3px 12px;font-weight:700;cursor:pointer;font-size:.82rem}
 .whob button:hover{background:rgb(255 255 255 / .18)}
 .gate{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:16px;background:color-mix(in srgb,var(--hero) 92%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
@@ -459,7 +459,7 @@ a{color:var(--accent)}
     </svg>
     <div class="hero-main">
       <div>
-        <div class="kickrow"><span class="kick"><i></i><span id="kickName">מעבדת האלקטרוניקה</span></span><span class="whob"><span id="whoChip"></span><button type="button" id="switchUser">החלפת משתמש</button></span></div>
+        <div class="kickrow"><span class="kick"><i></i><span id="kickName">מעבדת האלקטרוניקה</span></span><span class="whob"><span id="whoChip"></span><button type="button" id="myCode" hidden>הקוד שלי</button><button type="button" id="switchUser">החלפת משתמש</button></span></div>
         <h1 id="heroTitle">היי, <em>מה בונים היום?</em></h1>
         <p id="heroSub">20 ניסויים, מהנורה הראשונה ועד אורגן חשמלי. כל ניסוי שמסיימים מטעין את הסוללה.</p>
         <div class="hero-cta"><button class="btn spark" id="contBtn">להמשיך לניסוי הבא</button><button class="btn ghost" id="albumBtn">האלבום שלי</button></div>
@@ -505,8 +505,8 @@ a{color:var(--accent)}
       <button type="button" class="gch par" data-u="parent"><span class="gi" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><b>הורה</b></button>
     </div>
     <form class="pin" id="pinForm" hidden>
-      <label for="pinIn">קוד הורה</label>
-      <input id="pinIn" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" aria-describedby="pinMsg">
+      <label for="pinIn" id="pinLbl">קוד הורה</label>
+      <input id="pinIn" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" aria-describedby="pinMsg">
       <div class="pinmsg" id="pinMsg" aria-live="polite"></div>
       <div class="controls"><button type="button" class="btn" id="pinBack">חזרה</button><button class="btn primary" type="submit">כניסה</button></div>
     </form>
@@ -1310,7 +1310,7 @@ ask:async(el,n,e)=>{ const fq=FAQ[n]||[];
    const toParents=async q=>{ if(!KID){ toast('שאלות להורים נשלחות רק כשילד נכנס למעבדה.'); return false; }
      try{ await rpc('ask_parent',{p_kid:KID.id,p_who:KID.name,p_n:n,p_q:q}); track('ask_par',{n}); toast('השאלה נשלחה להורים!'); loadMine(); return true; }
      catch(err){ toast(/too many/.test(err.message)?'נשלחו הרבה שאלות. נסו שוב בעוד קצת.':'השליחה לא הצליחה. בדקו את החיבור לאינטרנט.'); return false; } };
-   const loadMine=async()=>{ if(!KID) return; let rows=[]; try{ rows=await rpc('kid_answers',{p_kid:KID.id}); }catch(err){ return; } if(!el.isConnected) return;
+   const loadMine=async()=>{ if(!KID) return; let rows=[]; try{ rows=await rpc('kid_answers2',{p_kid:KID.id,p_code:KCODE}); }catch(err){ return; } if(!el.isConnected) return;
      rows=(rows||[]).filter(r=>r.n===n).reverse();
      myq.innerHTML=rows.length?`<p class="muted small" style="margin:6px 0 0">שאלות ששלחת להורים:</p>`+rows.map(r=>`<div class="q">${esc(r.q)}</div>${r.answer?`<div class="a">${MAS(false)}<div class="txt">${esc('ההורים עונים: '+r.answer)}</div>${sayBtnHTML('m'+r.id,'הקריאו')}</div>`:'<p class="muted small" style="margin:0">ההורים עוד לא ענו. התשובה תופיע כאן.</p>'}`).join(''):'';
      bindSay(myq); };
@@ -1320,7 +1320,7 @@ ask:async(el,n,e)=>{ const fq=FAQ[n]||[];
      const turns=[]; hist.filter(x=>x.src==='ai'&&x.a&&!x.err).slice(-3).forEach(x=>{ turns.push({role:'user',content:x.q}); turns.push({role:'assistant',content:x.a}); }); turns.push({role:'user',content:q});
      const h={q,a:'',busy:true,src:'ai'}; hist.push(h); paint();
      const ctx=`ניסוי ${n}: ${e.t}\nמה לומדים: ${e.terms.map(t=>t[0]+': '+t[1]).join(' | ')}\nצעדי הבנייה: ${e.steps.join(' | ')}\nרכיבים: ${e.parts.join(', ')}`;
-     let res=null, st=0; try{ const r=await fetch(SB_URL+'/functions/v1/nitzotz',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({kid:KID?KID.id:'parent',pin:KID?'':PPIN,n,ctx,messages:turns})}); st=r.status; res=await r.json().catch(()=>null); }catch(err){ st=0; }
+     let res=null, st=0; try{ const r=await fetch(SB_URL+'/functions/v1/nitzotz',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({kid:KID?KID.id:'parent',pin:KID?'':PPIN,code:KID?KCODE:'',n,ctx,messages:turns})}); st=r.status; res=await r.json().catch(()=>null); }catch(err){ st=0; }
      h.busy=false;
      if(res && res.text && st===200){ h.a=res.text; }
      else if(res && res.error==='no_key'){ h.src='par'; h.err=1; if(KID && await toParents(q)){ h.a='ניצוץ עוד לא מחובר לבינה המלאכותית, אז העברתי את השאלה להורים. התשובה שלהם תופיע כאן למטה.'; } else h.a='ניצוץ עוד לא מחובר לבינה המלאכותית. אפשר לבחור שאלה מהשאלות הנפוצות למעלה.'; }
@@ -1514,7 +1514,8 @@ async function rpc(fn,args,keep){ const body=JSON.stringify(args||{});
   const t=await r.text(); if(!r.ok){ let m=t; try{ m=JSON.parse(t).message||t; }catch(e){} const er=new Error(m||('http '+r.status)); er.status=r.status; throw er; }
   try{ return t?JSON.parse(t):null; }catch(e){ return null; } }
 async function sbGet(q){ const r=await fetch(SB_URL+'/rest/v1/'+q,{headers:{apikey:SB_KEY}}); if(!r.ok) throw new Error('http '+r.status); return r.json(); }
-const sbKids=()=>sbGet('kids?select=id,name,g,age,created,u,prog&hidden=eq.false&order=created.asc');
+const sbKids=()=>sbGet('kids?select=id,name,g,age,created,has_code&hidden=eq.false&order=created.asc');
+let KCODE=''; try{ KCODE=sessionStorage.getItem('elab-kc')||''; }catch(e){}
 let PPIN=''; try{ PPIN=sessionStorage.getItem('elab-pin')||''; }catch(e){}
 setTimeout(()=>{ TM.db=true; TM.ref=true; TM.dirty=true; tmFlush(); kidsSync(); },0);
 
@@ -1530,7 +1531,7 @@ async function insights(){
   const v=$('#v-insights'); v.innerHTML='<section class="card"><p>טוען נתונים...</p></section>';
   let d; try{ d=await rpc('parent_data',{p_pin:PPIN}); }
   catch(e){ v.innerHTML='<div class="ins">'+kidsCardHTML()+'<section class="card"><p>'+(/bad pin|locked/.test(e.message)?'צריך להיכנס שוב במצב הורה עם הקוד.':'לא הצלחתי לטעון את הנתונים מהשרת. בדקו את החיבור לאינטרנט ונסו שוב.')+'</p></section></div>'; bindKidsCard(v); return; }
-  if(d && Array.isArray(d.kids) && d.kids.length){ d.kids.forEach(x=>{ KPROG[x.id]={done:Object.values((x.prog&&x.prog.done)||{}).filter(Boolean).length,u:x.u||0}; }); KIDS=d.kids.map(x=>({id:x.id,name:x.name,g:x.g||'',age:x.age||'',created:x.created||''})); saveKidsLocal(); renderGateKids(); }
+  if(d && Array.isArray(d.kids) && d.kids.length){ d.kids.forEach(x=>{ KPROG[x.id]={done:Object.values((x.prog&&x.prog.done)||{}).filter(Boolean).length,u:x.u||0}; }); KIDS=d.kids.map(x=>({id:x.id,name:x.name,g:x.g||'',age:x.age||'',created:x.created||'',has_code:!!x.has_code})); saveKidsLocal(); renderGateKids(); }
   let sess=((d&&d.sessions)||[]).filter(s=>s && Array.isArray(s.events));
   sess=sess.filter(s=>s.sid!==TM.sess); sess.push({sid:TM.sess,who:TM.who,started:TM.startISO,device:TM.dev,pal:S.pal,activeSec:TM.active,events:TM.events.slice()});
   INS={sess, qs:(d&&d.questions)||[], chats:(d&&d.chats)||[], who: (INS&&INS.who)||'all'}; drawIns();
@@ -1645,41 +1646,49 @@ function progOf(){ const o={}; PKEYS.forEach(k=>{ if(S[k]!==undefined) o[k]=S[k]
 function applyProg(p){ PKEYS.forEach(k=>{ if(p && p[k]!==undefined) S[k]=JSON.parse(JSON.stringify(p[k])); else if(k==='mode') delete S.mode; else S[k]=JSON.parse(JSON.stringify(PDEF[k])); }); try{ localStorage.setItem('elab-v1',JSON.stringify(S)); }catch(e){} }
 try{ if(!localStorage.getItem('elab-migrated')){ if(!localStorage.getItem('elab-p-yehonatan')) lsSet('elab-p-yehonatan',{u:1,p:progOf()}); localStorage.setItem('elab-migrated','1'); } }catch(e){}
 function onSave(){ try{ if(!PROF) return; lsSet('elab-p-'+PROF,{u:Date.now(),p:progOf()}); if(KID){ clearTimeout(syncT); syncT=setTimeout(pushProg,1500); } }catch(e){} }
-async function pushProg(){ if(!TM.db||!KID) return; const rec=lsGet('elab-p-'+KID.id); try{ await rpc('save_progress',{p_id:KID.id,p_prog:rec?rec.p:progOf(),p_u:rec?rec.u:Date.now()}); }catch(e){} }
+async function pushProg(){ if(!TM.db||!KID) return; const rec=lsGet('elab-p-'+KID.id); try{ await rpc('save_progress2',{p_id:KID.id,p_code:KCODE,p_prog:rec?rec.p:progOf(),p_u:rec?rec.u:Date.now()}); }catch(e){} }
 function rerender(){ setPal(S.pal||'circuit'); battery(); side(); shop(); open(S.cur||1,false); }
 async function loadProfile(id){ PROF=id; const local=lsGet('elab-p-'+id); applyProg(local?local.p:null); if(typeof open==='function' && $('#exp')) rerender();
   if(id==='parent' || !TM.db) return;
-  try{ const rows=await sbGet('kids?select=u,prog&id=eq.'+encodeURIComponent(id)); const x=rows&&rows[0]; if(PROF!==id) return;
+  try{ const x=await rpc('kid_get',{p_id:id,p_code:KCODE}); if(PROF!==id) return;
     if(x && x.prog && (x.u||0)>(local?local.u||0:0)){ applyProg(x.prog); lsSet('elab-p-'+id,{u:x.u,p:x.prog}); rerender(); }
     else if(local) pushProg(); }catch(e){} }
 async function kidsSync(){ if(!TM.db) return; try{
   const list=(await sbKids()).filter(x=>x&&x.id&&x.name); if(!list.length) return;
-  list.forEach(x=>{ KPROG[x.id]={done:Object.values((x.prog&&x.prog.done)||{}).filter(Boolean).length,u:x.u||0}; });
-  KIDS=list.map(x=>({id:x.id,name:x.name,g:x.g||'',age:x.age||'',created:x.created||''})).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
+  KIDS=list.map(x=>({id:x.id,name:x.name,g:x.g||'',age:x.age||'',created:x.created||'',has_code:!!x.has_code})).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
   saveKidsLocal(); renderGateKids();
   if(KID){ const f=KIDS.find(k=>k.id===KID.id); if(f) KID=f; await loadProfile(KID.id); }
   if(ROLE==='parent' && !$('#v-insights').hidden) insights();
 }catch(e){} }
 function newSession(){ tmChunk(); TM.dirty=true; tmFlush(); TM.sess=Date.now().toString(36)+Math.random().toString(36).slice(2,7); TM.t0=Date.now(); TM.startISO=new Date().toISOString(); TM.events=[]; TM.active=0; TM.expN=0; TM.m=null; track('session',{dev:TM.dev,w:innerWidth}); }
-function setRole(r,kidId){ const prevWho=TM.who, hadEvents=TM.events.length>2;
+function setRole(r,kidId,code){ const prevWho=TM.who, hadEvents=TM.events.length>2;
+  KCODE = r==='kid' ? (code||'') : ''; try{ if(KCODE) sessionStorage.setItem('elab-kc',KCODE); else sessionStorage.removeItem('elab-kc'); }catch(e){}
   ROLE=r; TM.lastAct=Date.now(); KID = r==='kid' ? (KIDS.find(k=>k.id===kidId)||KIDS[0]||null) : null;
   if(r!=='parent'){ PPIN=''; try{ sessionStorage.removeItem('elab-pin'); }catch(e){} } if(r==='parent'){ try{ sessionStorage.setItem('elab-pact',String(Date.now())); }catch(e){} }
   TM.who = KID ? KID.name : 'הורה'; TM.kid = KID ? KID.id : 'parent';
   if(hadEvents && prevWho!==TM.who) newSession();
   try{ sessionStorage.setItem('elab-role',r); sessionStorage.setItem('elab-kid',KID?KID.id:''); }catch(e){}
-  updateWho();
+  updateWho(); $('#myCode').hidden = r!=='kid';
   $('#tab-insights').hidden = r!=='parent'; if(r!=='parent' && !$('#v-insights').hidden) tab('lab');
   loadProfile(KID?KID.id:'parent');
   track('login',{who:TM.who}); TM.dirty=true; tmFlush(); }
 function updateWho(){ const nm=KN(); $('#whoChip').textContent = ROLE==='parent' ? 'מצב הורה' : `${nm} במעבדה`; $('#kickName').textContent = ROLE==='parent' ? 'מעבדת האלקטרוניקה' : `מעבדת האלקטרוניקה של ${nm}`; $('#battName').textContent = ROLE==='parent' ? 'הסוללה של מצב הורה' : `הסוללה של ${nm}`; battery(); }
 function renderGateKids(){ const box=$('#gChoices'); if(!box) return;
-  box.innerHTML = KIDS.map(k=>`<button type="button" class="gch" data-u="kid" data-k="${esc(k.id)}"><span class="gi" aria-hidden="true"><svg viewBox="-28 -46 56 72">${mas(0,0,'happy',1)}</svg></span><b>${esc(k.name)}</b></button>`).join('') + `<button type="button" class="gch par" data-u="parent"><span class="gi" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><b>הורה</b></button>`;
-  box.querySelectorAll('[data-u]').forEach(b=> b.onclick=()=>{ if(b.dataset.u==='kid'){ setRole('kid',b.dataset.k); hideGate(); } else { box.hidden=true; $('#pinForm').hidden=false; const i=$('#pinIn'); i.value=''; i.focus(); } }); }
+  box.innerHTML = KIDS.map(k=>`<button type="button" class="gch" data-u="kid" data-k="${esc(k.id)}"><span class="gi" aria-hidden="true"><svg viewBox="-28 -46 56 72">${mas(0,0,'happy',1)}</svg></span><b>${esc(k.name)}</b>${k.has_code?'<small>עם קוד</small>':''}</button>`).join('') + `<button type="button" class="gch par" data-u="parent"><span class="gi" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><b>הורה</b></button>`;
+  box.querySelectorAll('[data-u]').forEach(b=> b.onclick=()=>{ const k = b.dataset.u==='kid' ? KIDS.find(x=>x.id===b.dataset.k) : null;
+    if(k && !k.has_code){ setRole('kid',k.id); hideGate(); return; }
+    GATE_FOR = k ? k.id : 'parent'; $('#pinLbl').textContent = k ? `הקוד של ${k.name}` : 'קוד הורה'; $('#pinMsg').textContent='';
+    box.hidden=true; $('#pinForm').hidden=false; const i=$('#pinIn'); i.value=''; i.focus(); }); }
+let GATE_FOR='parent';
 function kidsCardHTML(){ return `<section class="card"><div class="inshead"><h3>הילדים במעבדה</h3></div>
-  <ul class="kidl">${KIDS.map(k=>`<li><span class="kn"><b>${esc(k.name)}</b><small>${[k.g==='f'?'בת':k.g==='m'?'בן':'',k.age?`גיל ${esc(k.age)}`:''].filter(Boolean).join(' · ')}${KPROG[k.id]?` · ${KPROG[k.id].done}/20 ניסויים`:''}</small></span><button type="button" class="say" data-delkid="${esc(k.id)}">מחיקה</button></li>`).join('')||'<li class="muted">אין עדיין ילדים.</li>'}</ul>
+  <ul class="kidl">${KIDS.map(k=>`<li><span class="kn"><b>${esc(k.name)}</b><small>${[k.g==='f'?'בת':k.g==='m'?'בן':'',k.age?`גיל ${esc(k.age)}`:''].filter(Boolean).join(' · ')}${KPROG[k.id]?` · ${KPROG[k.id].done}/20 ניסויים`:''} · ${k.has_code?'יש קוד אישי':'בלי קוד'}</small></span><span class="controls" style="margin:0">${k.has_code?`<button type="button" class="say" data-rcode="${esc(k.id)}">איפוס קוד</button>`:''}<button type="button" class="say" data-delkid="${esc(k.id)}">מחיקה</button></span></li>`).join('')||'<li class="muted">אין עדיין ילדים.</li>'}</ul>
   <form class="kidf" id="kidForm"><input id="kidName" maxlength="30" placeholder="שם הילד או הילדה" aria-label="שם" required><select id="kidG" aria-label="בן או בת"><option value="m">בן</option><option value="f">בת</option></select><input id="kidAge" type="number" min="4" max="17" placeholder="גיל" aria-label="גיל"><button class="btn primary" type="submit">הוספת ילד</button></form>
-  <p class="muted small" style="margin:8px 0 0">כל ילד מקבל התקדמות משלו שנשמרת בשרת, וממשיכים ממנה מכל מכשיר. הוא יופיע במסך "מי נכנס למעבדה?".</p></section>`; }
+  <p class="muted small" style="margin:8px 0 0">כל ילד מקבל התקדמות משלו שנשמרת בשרת, וממשיכים ממנה מכל מכשיר. הוא יופיע במסך "מי נכנס למעבדה?". כל ילד יכול ליצור לעצמו קוד אישי בכפתור "הקוד שלי" בראש העמוד.</p><div class="controls" style="margin-top:10px"><button type="button" class="btn" id="parCode">שינוי קוד הורה</button></div></section>`; }
 function bindKidsCard(v){ const f=v.querySelector('#kidForm'); if(!f) return;
+  const pc=v.querySelector('#parCode'); if(pc) pc.onclick=()=>codeDialog('parent');
+  v.querySelectorAll('[data-rcode]').forEach(b=> b.onclick=async()=>{ if(!b.dataset.sure){ b.dataset.sure='1'; b.textContent='בטוח? הקוד יימחק'; b.classList.add('danger'); return; }
+    const id=b.dataset.rcode; try{ await rpc('parent_kid_code',{p_pin:PPIN,p_id:id,p_new:null}); }catch(e){ toast('האיפוס לא הצליח. נסו שוב.'); return; }
+    const k=KIDS.find(x=>x.id===id); if(k){ k.has_code=false; saveKidsLocal(); renderGateKids(); } toast('הקוד אופס. אפשר להיכנס בלי קוד וליצור קוד חדש.'); track('kid_code_reset',{}); insights(); });
   f.onsubmit=async ev=>{ ev.preventDefault(); const name=v.querySelector('#kidName').value.trim(); if(!name) return; const k={id:'k'+Date.now().toString(36),name:name.slice(0,30),g:v.querySelector('#kidG').value,age:v.querySelector('#kidAge').value||'',created:new Date().toISOString()};
     const sb=f.querySelector('button'); sb.disabled=true;
     try{ await rpc('kid_add',{p_pin:PPIN,p_id:k.id,p_name:k.name,p_g:k.g,p_age:String(k.age||'')}); }catch(e){ sb.disabled=false; toast('ההוספה לא הצליחה. בדקו את החיבור לאינטרנט ונסו שוב.'); return; }
@@ -1688,6 +1697,24 @@ function bindKidsCard(v){ const f=v.querySelector('#kidForm'); if(!f) return;
   v.querySelectorAll('[data-delkid]').forEach(b=> b.onclick=async()=>{ if(!b.dataset.sure){ b.dataset.sure='1'; b.textContent='בטוח? ההתקדמות תימחק'; b.classList.add('danger'); return; }
     const id=b.dataset.delkid; try{ await rpc('kid_delete',{p_pin:PPIN,p_id:id}); }catch(e){ toast('המחיקה לא הצליחה. בדקו את החיבור לאינטרנט.'); return; }
     KIDS=KIDS.filter(k=>k.id!==id); saveKidsLocal(); try{ localStorage.removeItem('elab-p-'+id); }catch(e){} renderGateKids(); track('kid_del',{}); insights(); }); }
+function codeDialog(who){ const isPar = who==='parent'; const kid = isPar ? null : KID; if(!isPar && !kid) return;
+  const ov=document.createElement('div'); ov.className='ov'; ov.dir='rtl'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-label', isPar?'שינוי קוד הורה':'הקוד שלי');
+  const inp=(id,ph)=>`<label class="fld">${ph}<input id="${id}" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"></label>`;
+  ov.innerHTML=`<form class="dlg"><h3>${isPar?'שינוי קוד הורה':(kid.has_code?'החלפת הקוד שלי':'יצירת קוד אישי')}</h3>
+    <p class="muted" style="margin:0">${isPar?'הקוד שבו נכנסים למצב הורה ולתובנות.':`עם קוד אישי רק ${esc(kid.name)} יכול${kid.g==='f'?'ה':''} להיכנס להתקדמות ${kid.g==='f'?'שלה':'שלו'}. בוחרים 4 עד 8 ספרות שקל לזכור.`}</p>
+    ${isPar?inp('cOld','הקוד הנוכחי'):''}${inp('cNew','קוד חדש')}${inp('cNew2','שוב את הקוד החדש')}
+    <div class="pinmsg" id="cMsg" aria-live="polite"></div>
+    <div class="controls"><button type="button" class="btn" id="cX">ביטול</button><button class="btn primary" type="submit">שמירה</button></div></form>`;
+  document.body.appendChild(ov); const close=()=>{ ov.remove(); document.removeEventListener('keydown',key); }; const key=e=>{ if(e.key==='Escape') close(); }; document.addEventListener('keydown',key);
+  ov.querySelector('#cX').onclick=close; setTimeout(()=>{ const f=ov.querySelector('input'); if(f) f.focus(); },30);
+  ov.querySelector('form').onsubmit=async ev=>{ ev.preventDefault(); const m=ov.querySelector('#cMsg'); const a=ov.querySelector('#cNew').value.trim(), b=ov.querySelector('#cNew2').value.trim();
+    if(!/^[0-9]{4,8}$/.test(a)){ m.textContent='הקוד צריך להיות 4 עד 8 ספרות.'; return; } if(a!==b){ m.textContent='שני הקודים לא זהים. נסו שוב.'; return; }
+    const sb=ev.target.querySelector('[type=submit]'); sb.disabled=true;
+    try{ if(isPar){ await rpc('parent_set_pin',{p_old:ov.querySelector('#cOld').value.trim(),p_new:a}); PPIN=a; try{ sessionStorage.setItem('elab-pin',a); }catch(e){} toast('קוד ההורה הוחלף'); track('parent_code_set',{}); }
+      else { await rpc('kid_set_code',{p_id:kid.id,p_old:KCODE,p_new:a}); KCODE=a; try{ sessionStorage.setItem('elab-kc',a); }catch(e){} kid.has_code=true; const k2=KIDS.find(x=>x.id===kid.id); if(k2) k2.has_code=true; saveKidsLocal(); renderGateKids(); toast('הקוד נשמר! מעכשיו נכנסים איתו.'); track('kid_code_set',{}); }
+      close(); }
+    catch(err){ sb.disabled=false; m.textContent = /bad pin|bad code/.test(err.message) ? 'הקוד הנוכחי לא נכון.' : /locked/.test(err.message) ? 'יותר מדי ניסיונות. נסו שוב בעוד 10 דקות.' : 'השמירה לא הצליחה. בדקו את החיבור לאינטרנט.'; } }; }
+$('#myCode').onclick=()=>codeDialog('kid');
 function showGate(){ const g=$('#gate'); g.hidden=false; $('#gChoices').hidden=false; $('#pinForm').hidden=true; $('#pinMsg').textContent=''; document.body.style.overflow='hidden'; setTimeout(()=>{ const b=g.querySelector('.gch'); if(b) b.focus(); },30); }
 function hideGate(){ $('#gate').hidden=true; document.body.style.overflow=''; }
 $('#gateMas').innerHTML=`<svg viewBox="-60 -92 120 146" width="110" height="110">${mas(0,0,'happy',2)}</svg>`;
@@ -1695,7 +1722,14 @@ renderGateKids();
 $('#pinBack').onclick=()=>{ $('#pinForm').hidden=true; $('#gChoices').hidden=false; };
 $('#pinForm').onsubmit=async ev=>{ ev.preventDefault(); const m=$('#pinMsg'), i=$('#pinIn');
   if(Date.now()<pinLockUntil){ m.textContent=`יותר מדי ניסיונות. נסו שוב בעוד ${Math.ceil((pinLockUntil-Date.now())/1000)} שניות.`; return; }
-  const v=i.value.trim(); const h=await sha(v); const ok = h ? h===PINH : v==='2128';
+  const v=i.value.trim(); if(!v) return; const sb=ev.target.querySelector('[type=submit]'); sb.disabled=true;
+  if(GATE_FOR!=='parent'){ const kid=KIDS.find(x=>x.id===GATE_FOR);
+    try{ await rpc('kid_get',{p_id:GATE_FOR,p_code:v}); sb.disabled=false; setRole('kid',GATE_FOR,v); hideGate(); toast(`שלום ${kid?kid.name:''}!`); }
+    catch(err){ sb.disabled=false; i.value=''; i.focus(); track('kid_code_fail'); m.textContent = /locked/.test(err.message) ? 'יותר מדי ניסיונות. אפשר לנסות שוב בעוד 10 דקות, או לבקש מההורים לאפס את הקוד.' : /bad code/.test(err.message) ? 'הקוד לא נכון. נסו שוב.' : 'אין חיבור לשרת. בדקו את האינטרנט ונסו שוב.'; }
+    return; }
+  let ok=false, net=false; try{ ok = (await rpc('parent_check',{p_pin:v}))===true; }catch(err){ if(/locked/.test(err.message)){ sb.disabled=false; m.textContent='יותר מדי ניסיונות. נסו שוב בעוד 10 דקות.'; return; } net=true; }
+  if(net){ const h=await sha(v); ok = h ? h===PINH : v==='2128'; }
+  sb.disabled=false;
   if(ok){ pinFails=0; setRole('parent'); PPIN=v; try{ sessionStorage.setItem('elab-pin',v); }catch(e){} hideGate(); toast('נכנסת במצב הורה'); }
   else { pinFails++; track('pin_fail'); i.value=''; i.focus(); if(pinFails>=5){ pinLockUntil=Date.now()+30000; pinFails=0; m.textContent='יותר מדי ניסיונות. נסו שוב בעוד 30 שניות.'; } else m.textContent='הקוד לא נכון. נסו שוב.'; } };
 $('#switchUser').onclick=showGate;
@@ -1707,7 +1741,8 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) idleChec
 { let r=null, pact=0; try{ r=sessionStorage.getItem('elab-role'); pact=+sessionStorage.getItem('elab-pact')||0; }catch(e){}
   if(r==='parent' && pact && Date.now()-pact>IDLE_MS){ try{ sessionStorage.removeItem('elab-role'); }catch(e){} r=null; }
   let kk=''; try{ kk=sessionStorage.getItem('elab-kid')||''; }catch(e){}
-  if(r==='kid' && KIDS.some(k=>k.id===kk)) setRole('kid',kk); else if(r==='parent') setRole('parent'); else showGate(); }
+  let kc=''; try{ kc=sessionStorage.getItem('elab-kc')||''; }catch(e){} const kr=KIDS.find(k=>k.id===kk);
+  if(r==='kid' && kr && (!kr.has_code || kc)) setRole('kid',kk,kc); else if(r==='parent') setRole('parent'); else showGate(); }
 
 TM.m=openMode(); TM.mT=Date.now(); TM.mN=S.cur||1;
 setPal(S.pal||'circuit');
