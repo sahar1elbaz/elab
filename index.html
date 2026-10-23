@@ -481,6 +481,20 @@ a{color:var(--accent)}
 .nkf .ltr{direction:ltr;text-align:center;letter-spacing:.3em;font-family:var(--f-mono)}
 .nkf small{color:var(--muted);font-weight:600}
 .nkf .controls{justify-content:center}
+
+/* ---------- "before we start": concepts and parts ---------- */
+.intro .ihead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.intro .ihead h3{margin:0}
+.intro .lead{margin:6px 0 14px;color:var(--muted)}
+.icols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.icols h4{margin:0 0 8px;font-size:1.05rem}
+.ilist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ilist li{display:flex;gap:12px;align-items:flex-start;background:var(--sunk);border-radius:16px;padding:10px 12px}
+.ilist li b{display:block;font-size:1rem;margin-bottom:2px}
+.ilist li p{margin:0;line-height:1.55;font-size:.95rem}
+.ilist .tnum{flex:0 0 30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:800;font-size:.9rem}
+.ilist .pic{flex:0 0 auto}
+.intro .reading{outline:3px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -1020,12 +1034,54 @@ function side(){
 }
 function jumpTo(el){ if(!el) return; requestAnimationFrame(()=>{ const nav=$('nav.tabs'); const off=(nav?nav.getBoundingClientRect().height:0)+20; const y=el.getBoundingClientRect().top+window.scrollY-off; let smooth=true; try{ smooth=!matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){} window.scrollTo({top:Math.max(0,y),behavior:smooth?'smooth':'auto'}); const h=el.querySelector && el.querySelector('h2'); if(h){ h.tabIndex=-1; try{ h.focus({preventScroll:true}); }catch(e){} } }); }
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove('show'),2600); }
+const PARTDESC=[
+ [/סוללת 9V/,'סוללה 9 וולט','מקור החשמל של המעגל. היא דוחפת את הזרם. הצד העגול הקטן הוא הפלוס, והמשושה הוא המינוס.'],
+ [/סוללות AA|סוללות חדשות/,'סוללות AA','סוללות קטנות של 1.5 וולט כל אחת. במארז הן מחוברות בטור, ויחד נותנות 3 וולט.'],
+ [/נורת להט|נורות להט/,'נורת להט','בתוכה חוט דק מאוד. כשזרם עובר בו, הוא מתחמם עד שהוא זוהר.'],
+ [/לד RGB/,'לד RGB','שלושה לדים קטנים בתוך אחד: אדום, ירוק וכחול. לכל צבע יש רגל משלו.'],
+ [/^לד/,'לד','נורה קטנה שנדלקת רק בכיוון אחד. הרגל הארוכה היא הפלוס. תמיד מחברים אותו עם נגד.'],
+ [/נגד/,'נגד','רכיב שמקשה על הזרם ומגביל אותו. הפסים הצבעוניים אומרים כמה הוא חזק, ביחידות אוהם (Ω).'],
+ [/פוטנציומטר/,'פוטנציומטר','נגד שאפשר לשנות. מסובבים את הבורג הקטן עם מברג, וההתנגדות עולה או יורדת.'],
+ [/קבל קרמי/,'קבל קרמי','קבל קטן וצבעוני שאוגר מעט מאוד חשמל. אין לו פלוס ומינוס, אז אפשר לחבר אותו לכל כיוון.'],
+ [/קבל/,'קבל גלילי','כמו דלי קטן של חשמל: מתמלא ומתרוקן מהר. הפס הלבן בצד מסמן את המינוס.'],
+ [/דיודה/,'דיודה','שער חד-כיווני לזרם: מעבירה בכיוון אחד וחוסמת בשני. הפס האפור מסמן את צד המינוס.'],
+ [/לחצן|לחצנים/,'לחצן','סוגר את המעגל רק כל עוד לוחצים עליו. כשעוזבים, קפיץ קטן פותח אותו.'],
+ [/מתג החלקה/,'מתג החלקה','מתג שמזיזים הצידה. הוא נשאר במצב שבו השארתם אותו: דלוק או כבוי.'],
+ [/זמזם אקטיבי/,'זמזם אקטיבי','מצפצף לבד כשמגיע אליו זרם. הרגל הארוכה היא הפלוס.'],
+ [/זמזם פסיבי/,'זמזם פסיבי','רמקול קטנטן. כדי שיישמע צליל, משהו צריך להרעיד אותו מהר, כמו שבב ה-555.'],
+ [/LDR/,'חיישן אור (LDR)','נגד שמשתנה לפי האור: באור הוא מעביר הרבה זרם, ובחושך מעט.'],
+ [/טרנזיסטור/,'טרנזיסטור','מתג אלקטרוני בלי חלקים זזים. זרם קטן ברגל האמצעית פותח זרם גדול. לרגליים קוראים E, B ו-C.'],
+ [/NE555/,'שבב 555','שבב עם 8 רגליים שיודע להבהב ולתקתק בקצב קבוע. החריץ בראש השבב מסמן את הכיוון.'],
+ [/מנוע/,'מנוע DC','בתוכו יש מגנטים וסליל. כשזרם עובר, הציר מסתובב. הופכים את הסוללה, והוא מסתובב לצד השני.'],
+ [/מולטימטר/,'מולטימטר','מכשיר מדידה: מודד מתח בוולט, התנגדות באוהם ועוד. החוט האדום לפלוס והשחור למינוס.'],
+ [/לוח מטריצה/,'לוח מטריצה','לוח עם חורים לבנייה בלי הלחמה. בכל שורה קצרה של 5 חורים, החורים מחוברים מתחת ללוח.'],
+ [/חוטי מגשר/,'חוטי מגשר','חוטים קצרים עם פינים בקצוות, לחיבור בין חורים בלוח.'],
+ [/תנין/,'חוטי תנין','חוטים עם תפסנים בקצוות, שתופסים רכיבים בלי צורך בלוח.'],
+ [/קצה חשוף/,'חוטים חשופים','חוטים שהורידו את הבידוד מהקצה שלהם, כדי שהמתכת תיגע במים או באצבע.'],
+ [/מסמרים|ברגים/,'מסמרים מגולוונים','מסמרים מצופים במתכת שנקראת אבץ. זו אחת משתי המתכות של סוללת הלימון.'],
+ [/מטבעות/,'מטבעות 10 אגורות','המתכת השנייה של סוללת הלימון. הן מצופות נחושת.'],
+ [/לימונים/,'לימונים','המיץ החמוץ שבתוכם מעביר חשמל בין שתי המתכות.'],
+ [/מברג/,'מברג קטן','כדי לסובב את הבורג של הפוטנציומטר.'],
+ [/כוס מים/,'כוס מים','מים מהברז מעבירים קצת חשמל, וזה מה שהאזעקה מרגישה.'],
+ [/חפצים מהבית|מפתח|עיפרון|מחק|נייר כסף|פקק/,'חפצים מהבית','בודקים איזה מהם מעביר חשמל ואיזה לא.']];
+function introParts(e){ const seen=new Set(), out=[];
+  e.parts.forEach(p=>{ const m=p.match(/המעגל מניסוי (\d+)/); if(m){ const k='c'+m[1]; if(!seen.has(k)){ seen.add(k); out.push({p,t:`המעגל מניסוי ${m[1]}`,d:`משתמשים שוב במעגל שבנית בניסוי ${m[1]}, "${EXP[+m[1]-1].t}".`}); } return; }
+    const d=PARTDESC.find(x=>x[0].test(p)); if(!d){ return; } if(seen.has(d[1]) || e.terms.some(t=>t[0].trim()===d[1])) return; seen.add(d[1]); out.push({p,t:d[1],d:d[2]}); });
+  return out; }
+function introHTML(e){ const ps=introParts(e);
+  return `<section class="card intro" id="intro"><div class="ihead"><h3>לפני שמתחילים</h3>${sayBtnHTML('intro','הקריאו לי')}</div>
+   <p class="lead">קודם מכירים את המילים החדשות ואת החלקים, ואז בונים.</p>
+   <div class="icols"><div><h4>מילים חדשות</h4><ol class="ilist">${e.terms.map((t,i)=>`<li data-it="t${i}"><span class="tnum">${i+1}</span><span><b>${esc(t[0])}</b><p>${esc(t[1])}</p></span></li>`).join('')}</ol></div>
+   <div><h4>הכירו את החלקים</h4><ul class="ilist">${ps.map((x,i)=>`<li data-it="p${i}">${pic(x.p)}<span><b>${esc(x.t)}</b><p>${esc(x.d)}</p></span></li>`).join('')}</ul></div></div></section>`; }
+function bindIntro(e){ const box=$('#intro'); if(!box) return; const ps=introParts(e);
+  box.querySelector('[data-say="intro"]').onclick=ev=>say([['לפני שמתחילים. מילים חדשות.',null],...e.terms.map((t,i)=>[`${t[0]}. ${t[1]}`,box.querySelector(`[data-it="t${i}"]`)]),['ועכשיו, החלקים.',null],...ps.map((x,i)=>[`${x.t}. ${x.d}`,box.querySelector(`[data-it="p${i}"]`)])],ev.currentTarget); }
 function open(n, scroll){
   if(cleanup){ try{cleanup();}catch(e){} cleanup=null; } tone(null);
   S.cur=n; save(); const e=EXP[n-1]; tmExp(n);
   const sk = S.steps[n]||{}, pk = S.parts[n]||{}, qa = S.quiz[n];
   $('#exp').innerHTML = `
   <div class="head st${e.st}"><div class="hnum"><small>ניסוי</small><b>${n}</b></div><div class="htxt"><div class="eyebrow">${STAGES[e.st]}</div><h2>${esc(e.t)}</h2><div class="hchips">${e.terms.map(t=>`<span>${esc(t[0])}</span>`).join('')}</div></div><div class="hmas" aria-hidden="true"><svg viewBox="-40 -60 80 90">${mas(0,0,S.done[n]?'happy':'wow',1.3)}</svg></div></div>
+  ${introHTML(e)}
   <section class="card acc" id="acc"></section>
   <section class="card"><h3>נסו בעצמכם <span class="n">סימולציה</span></h3><div class="sim" id="sim"></div></section>
   <div class="two">
@@ -1042,7 +1098,7 @@ function open(n, scroll){
   cleanup = e.sim($('#sim')) || null;
   stopSay();
   { const ex=$('#exp');
-    renderAcc(n);
+    renderAcc(n); bindIntro(e);
     ex.querySelector('[data-say="parts"]').onclick=ev=>say([['מה צריך לניסוי הזה:',null], ...e.parts.map((p,i)=>[p, ex.querySelectorAll('[data-part]')[i].closest('li')])], ev.currentTarget);
     ex.querySelector('[data-say="steps"]').onclick=ev=>say([['בונים את המעגל.',null], ...e.steps.map((p,i)=>[`צעד ${i+1}. ${p}`, ex.querySelectorAll('ol.steps > li')[i]])], ev.currentTarget);
     ex.querySelector('[data-say="quiz"]').onclick=ev=>say([[e.quiz[0], ex.querySelector('.quiz legend')], ...e.quiz[1].map((o,i)=>[`תשובה ${i+1}: ${o}`, ex.querySelectorAll('.opt')[i]])], ev.currentTarget);
@@ -1571,7 +1627,7 @@ setTimeout(()=>{ TM.db=true; TM.ref=true; TM.dirty=true; tmFlush(); kidsSync(); 
 /* ---------- parents' insights dashboard ---------- */
 const MNAME=Object.fromEntries(METHODS.map(m=>[m[0],m[1]]));
 const CLICKN={'exp_nav':'בחירת ניסוי ברשימה','camera':'כפתור צילום','ask_chip':'שאלה מוכנה לניצוץ','gloss_go':'מעבר מהמילון לניסוי','album_go':'מעבר מהאלבום לניסוי','photo_view':'פתיחת תמונה','answer':'בחירת תשובה','card_flip':'הפיכת כרטיסייה','contBtn':'"להמשיך לניסוי הבא"','albumBtn':'"האלבום שלי" בפתיחה','done':'"סיימנו את הניסוי"','next':'הניסוי הבא','prev':'הניסוי הקודם','mk':'יצירת סרטון','mkall':'סרטון של כל המסע','vset':'הגדרות קול','btn:nx':'כרטיסייה הבאה','btn:p':'כרטיסייה קודמת','btn:gn':'"סיימתי, לצעד הבא"','btn:gb':'חזרה צעד','btn:nq':'שאלה הבאה בחידון','btn:gc':'צילום ב"בונים ביחד"'};
-function clickName(k){ if(CLICKN[k]) return CLICKN[k]; if(k.startsWith('method:')) return 'פתיחת "'+(MNAME[k.slice(7)]||k.slice(7))+'"'; if(k.startsWith('tts:')) return 'הקראה ('+({terms:'הסבר',comic:'קומיקס',parts:'מה צריך',steps:'צעדים',quiz:'שאלת בדיקה',card:'כרטיסייה',g:'מילון',g1:'בונים ביחד',pq:'חידון',a:'תשובה של ניצוץ'}[k.slice(4)]||k.slice(4))+')'; if(k.startsWith('sim:')) return 'סימולציה: '+k.slice(4); if(k.startsWith('tab:')) return 'לשונית '+({lab:'ניסויים',shop:'רשימת קנייה',album:'האלבום',gloss:'מילון',safe:'בטיחות',insights:'תובנות'}[k.slice(4)]||k.slice(4)); if(k.startsWith('pal:')) return 'ערכת צבעים'; return k; }
+function clickName(k){ if(CLICKN[k]) return CLICKN[k]; if(k.startsWith('method:')) return 'פתיחת "'+(MNAME[k.slice(7)]||k.slice(7))+'"'; if(k.startsWith('tts:')) return 'הקראה ('+({terms:'הסבר',comic:'קומיקס',parts:'מה צריך',steps:'צעדים',quiz:'שאלת בדיקה',card:'כרטיסייה',g:'מילון',g1:'בונים ביחד',pq:'חידון',a:'תשובה של ניצוץ',intro:'לפני שמתחילים'}[k.slice(4)]||k.slice(4))+')'; if(k.startsWith('sim:')) return 'סימולציה: '+k.slice(4); if(k.startsWith('tab:')) return 'לשונית '+({lab:'ניסויים',shop:'רשימת קנייה',album:'האלבום',gloss:'מילון',safe:'בטיחות',insights:'תובנות'}[k.slice(4)]||k.slice(4)); if(k.startsWith('pal:')) return 'ערכת צבעים'; return k; }
 let INS=null;
 const fmtMin=s=>{ const m=Math.round(s/60); return m<60?`${m} דק׳`:`${Math.floor(m/60)} ש׳ ${m%60} דק׳`; };
 const fmtWhen=t=>{ try{ return new Date(t).toLocaleString('he-IL',{weekday:'short',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } };
